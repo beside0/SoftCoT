@@ -163,7 +163,7 @@ class EfficientSoftCoTFromSmallModel(SoftCoTAbstractClass):
         print_index=False,
     ):
         output_attentions = output_attentions if output_attentions is not None else self.config.output_attentions
-        output_hidden_states = (
+        output_hidden_states = ( 
             output_hidden_states if output_hidden_states is not None else self.config.output_hidden_states
         )
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
@@ -233,8 +233,8 @@ class EfficientSoftCoTFromSmallModel(SoftCoTAbstractClass):
             attention_mask=assistant_attention_mask,
             output_hidden_states=True,
             return_dict=True,
-        )
-        assistant_hidden_states = assistant_outputs['hidden_states'][-1]
+        ) #assitant model output 
+        assistant_hidden_states = assistant_outputs['hidden_states'][-1] #a
         if isinstance(self.projection, nn.Linear):
             projected_inputs_embeds = self.projection(assistant_hidden_states)
         else:
@@ -244,7 +244,7 @@ class EfficientSoftCoTFromSmallModel(SoftCoTAbstractClass):
             input_thought_start_idx = thought_index[b, 0].item()
             input_thought_end_idx = thought_index[b, 1].item()
             assistant_thought_start_idx = thought_index[b, 2].item()
-            assistant_thought_end_idx = thought_index[b, 3].item()
+            assistant_thought_end_idx = thought_index[b, 3].item() #用assistant模型替代base模型的输入
             inputs_embeds[b, input_thought_start_idx: input_thought_end_idx] = \
                 projected_inputs_embeds[b, assistant_thought_start_idx: assistant_thought_end_idx]
             if print_index:
@@ -273,6 +273,7 @@ class ScalingEfficientSoftCoTFromSmallModel(SoftCoTAbstractClass):
         path_to_large_language_model=None,
         num_scaling_times=1,
         add_cl_loss=False,
+        dropout_rate=0.1,
         **kwargs,
     ):
         super().__init__(
@@ -282,7 +283,8 @@ class ScalingEfficientSoftCoTFromSmallModel(SoftCoTAbstractClass):
             tune_assistant_model=tune_assistant_model,
             tune_base_model=tune_base_model,
         )
-
+        self.num_scaling_times = num_scaling_times
+        self.dropout = nn.Dropout(dropout_rate)
         embedding_device = self.base_model.model.embed_tokens.weight.data.device
         if 'Llama' in small_language_model_id:
             start_idx = 128011
